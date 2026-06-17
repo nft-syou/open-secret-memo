@@ -1,0 +1,9 @@
+/target
+**/target
+node_modules
+dist
+dev-dist
+web/src/wasm
+crates/core/fuzz/target
+crates/core/fuzz/corpus
+crates/core/fuzz/artifacts
