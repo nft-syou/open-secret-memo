@@ -1,0 +1,11 @@
+[package]
+name = "osm-cli"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "osm"
+path = "src/main.rs"
+
+[dependencies]
+osm-core = { path = "../core" }
