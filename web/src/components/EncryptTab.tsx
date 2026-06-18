@@ -36,86 +36,121 @@ export default function EncryptTab() {
   }
 
   return (
-    <section>
-      <label className="block mb-2">
-        <span className="block text-sm">メモ本文</span>
+    <section className="space-y-5">
+      <div>
+        <h2 className="text-xl font-bold text-stone-950">メモを暗号化</h2>
+        <p className="mt-1 text-sm leading-6 text-stone-600">
+          暗号化済みテキストをクラウドメモやチャットなどに保存できます。
+        </p>
+      </div>
+
+      <label className="block">
+        <span className="field-label">メモ本文</span>
         <textarea
           aria-label="メモ本文"
           value={memo}
           onChange={(e) => setMemo(e.target.value)}
-          className="w-full border rounded px-2 py-1 text-slate-900"
-          rows={4}
+          className="input-surface mt-1.5 min-h-36"
+          rows={6}
+          placeholder="ここに秘密メモを入力"
         />
       </label>
 
-      <PassphraseField label="合言葉" value={pass} onChange={setPass} />
-      <PassphraseField label="合言葉（確認）" value={confirm} onChange={setConfirm} />
-      {mismatch && <p className="text-red-400 text-sm">合言葉が一致しません。</p>}
-      {strength && (
-        <p className={strength.level === "weak" ? "text-amber-400 text-sm" : "text-slate-300 text-sm"}>
-          {strength.message}
-        </p>
-      )}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <PassphraseField label="合言葉" value={pass} onChange={setPass} />
+        <PassphraseField label="合言葉（確認）" value={confirm} onChange={setConfirm} />
+      </div>
+      <div className="min-h-5">
+        {mismatch && <p className="text-sm font-medium text-red-700">合言葉が一致しません。</p>}
+        {strength && (
+          <p className={strength.level === "weak" ? "text-sm font-medium text-amber-700" : "text-sm text-stone-600"}>
+            {strength.message}
+          </p>
+        )}
+      </div>
 
-      <label className="block my-2">
-        <span className="block text-sm">保存形式</span>
-        <select
-          aria-label="保存形式"
-          value={format}
-          onChange={(e) => setFormat(e.target.value as SaveFormat)}
-          className="text-slate-900 rounded"
-        >
-          <option value="standard">標準形式</option>
-          <option value="words">日本語単語列形式</option>
-        </select>
-      </label>
+      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <label className="block">
+          <span className="field-label">保存形式</span>
+          <select
+            aria-label="保存形式"
+            value={format}
+            onChange={(e) => setFormat(e.target.value as SaveFormat)}
+            className="input-surface mt-1.5"
+          >
+            <option value="standard">標準形式</option>
+            <option value="words">日本語単語列形式</option>
+          </select>
+        </label>
 
-      <details open={showAdvanced} onToggle={(e) => setShowAdvanced((e.target as HTMLDetailsElement).open)}>
-        <summary>上級者オプション（Argon2id）</summary>
-        <label className="block text-sm">メモリ(KiB)
-          <input type="number" aria-label="m_cost" value={mCost} min={8192} max={1048576} onChange={(e) => setMCost(Number(e.target.value))} className="text-slate-900 ml-2 rounded" />
+        <label className="flex min-h-[4.75rem] items-center gap-3 rounded border border-stone-200 bg-stone-50 px-3 py-3 text-sm text-stone-700">
+          <input
+            type="checkbox"
+            checked={clearAfter}
+            onChange={(e) => setClearAfter(e.target.checked)}
+            className="h-4 w-4 rounded border-stone-300 text-teal-700"
+          />
+          <span>暗号化後にメモ本文・合言葉をクリアする</span>
         </label>
-        <label className="block text-sm">反復回数
-          <input type="number" aria-label="t_cost" value={tCost} min={1} onChange={(e) => setTCost(Number(e.target.value))} className="text-slate-900 ml-2 rounded" />
-        </label>
-        <label className="block text-sm">並列数
-          <input type="number" aria-label="p_cost" value={pCost} min={1} onChange={(e) => setPCost(Number(e.target.value))} className="text-slate-900 ml-2 rounded" />
-        </label>
+      </div>
+
+      <details
+        className="rounded border border-stone-200 bg-stone-50 px-3 py-2"
+        open={showAdvanced}
+        onToggle={(e) => setShowAdvanced((e.target as HTMLDetailsElement).open)}
+      >
+        <summary className="cursor-pointer text-sm font-semibold text-stone-800">上級者オプション（Argon2id）</summary>
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <label className="block text-sm font-medium text-stone-700">
+            メモリ(KiB)
+            <input type="number" aria-label="m_cost" value={mCost} min={8192} max={1048576} onChange={(e) => setMCost(Number(e.target.value))} className="input-surface mt-1" />
+          </label>
+          <label className="block text-sm font-medium text-stone-700">
+            反復回数
+            <input type="number" aria-label="t_cost" value={tCost} min={1} onChange={(e) => setTCost(Number(e.target.value))} className="input-surface mt-1" />
+          </label>
+          <label className="block text-sm font-medium text-stone-700">
+            並列数
+            <input type="number" aria-label="p_cost" value={pCost} min={1} onChange={(e) => setPCost(Number(e.target.value))} className="input-surface mt-1" />
+          </label>
+        </div>
       </details>
 
-      <label className="block my-2 text-sm">
-        <input type="checkbox" checked={clearAfter} onChange={(e) => setClearAfter(e.target.checked)} className="mr-2" />
-        暗号化後にメモ本文・合言葉をクリアする
-      </label>
-
-      <button
-        onClick={onEncrypt}
-        disabled={!canEncrypt}
-        className="bg-sky-600 disabled:opacity-40 rounded px-3 py-1"
-      >
-        暗号化する
-      </button>
-      {error && <p className="text-red-400 text-sm mt-1">{error}</p>}
-      <p className="text-xs text-slate-400 mt-1">合言葉を忘れると復号できません。この内容はサーバーに送信されません。</p>
+      <div className="flex flex-col gap-3 border-t border-stone-200 pt-4 sm:flex-row sm:items-center">
+        <button onClick={onEncrypt} disabled={!canEncrypt} className="button-primary sm:w-40">
+          {busy ? "処理中..." : "暗号化する"}
+        </button>
+        <p className="text-xs leading-5 text-stone-500">
+          合言葉を忘れると復号できません。この内容はサーバーに送信されません。
+        </p>
+      </div>
+      {error && <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
       {output && (
-        <div className="mt-3">
-          <textarea aria-label="暗号化済みテキスト" readOnly value={output} className="w-full border rounded px-2 py-1 text-slate-900" rows={4} />
-          <div className="flex gap-2 mt-1">
-            <button onClick={() => navigator.clipboard.writeText(output)}>コピー</button>
-            <button
-              onClick={() => {
-                const blob = new Blob([output], { type: "text/plain" });
-                const a = document.createElement("a");
-                a.href = URL.createObjectURL(blob);
-                a.download = "secret.osm.txt";
-                a.click();
-                URL.revokeObjectURL(a.href);
-              }}
-            >
-              txt保存
-            </button>
+        <div className="section-panel">
+          <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h3 className="font-bold text-stone-950">暗号化済みテキスト</h3>
+              <p className="field-hint">このテキストを保存してください。</p>
+            </div>
+            <div className="flex gap-2">
+              <button className="button-secondary" onClick={() => navigator.clipboard.writeText(output)}>コピー</button>
+              <button
+                className="button-secondary"
+                onClick={() => {
+                  const blob = new Blob([output], { type: "text/plain" });
+                  const a = document.createElement("a");
+                  a.href = URL.createObjectURL(blob);
+                  a.download = "secret.osm.txt";
+                  a.click();
+                  URL.revokeObjectURL(a.href);
+                }}
+              >
+                txt保存
+              </button>
+            </div>
           </div>
+          <textarea aria-label="暗号化済みテキスト" readOnly value={output} className="input-surface font-mono text-sm" rows={5} />
         </div>
       )}
     </section>

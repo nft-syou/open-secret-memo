@@ -9,17 +9,17 @@ interface Props {
 export default function PassphraseField({ label, value, onChange }: Props) {
   const [show, setShow] = useState(false);
   return (
-    <label className="block mb-2">
-      <span className="block text-sm">{label}</span>
-      <span className="flex gap-2">
+    <label className="block">
+      <span className="field-label">{label}</span>
+      <span className="mt-1.5 flex gap-2">
         <input
           aria-label={label}
           type={show ? "text" : "password"}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="flex-1 border rounded px-2 py-1 text-slate-900"
+          className="input-surface min-w-0 flex-1"
         />
-        <button type="button" onClick={() => setShow((s) => !s)}>
+        <button type="button" onClick={() => setShow((s) => !s)} className="button-secondary w-20 shrink-0">
           {show ? "隠す" : "表示"}
         </button>
       </span>
