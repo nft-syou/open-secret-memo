@@ -1,6 +1,7 @@
 import { useState } from "react";
 import EncryptTab from "./components/EncryptTab";
 import DecryptTab from "./components/DecryptTab";
+import SafetyAccordion from "./components/SafetyAccordion";
 
 type Tab = "encrypt" | "decrypt";
 
@@ -31,6 +32,7 @@ export default function App() {
         </button>
       </div>
       <div>{tab === "encrypt" ? <EncryptTab /> : <DecryptTab />}</div>
+      <SafetyAccordion />
     </main>
   );
 }
