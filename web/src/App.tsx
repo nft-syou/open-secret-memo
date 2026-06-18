@@ -69,7 +69,12 @@ export default function App() {
               </button>
             </div>
             <div className="mt-2 rounded-md bg-white p-4 shadow-sm sm:p-6">
-              {tab === "encrypt" ? <EncryptTab /> : <DecryptTab />}
+              <div hidden={tab !== "encrypt"}>
+                <EncryptTab />
+              </div>
+              <div hidden={tab !== "decrypt"}>
+                <DecryptTab />
+              </div>
             </div>
           </section>
 

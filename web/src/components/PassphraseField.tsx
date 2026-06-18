@@ -7,7 +7,7 @@ interface Props {
 }
 
 export default function PassphraseField({ label, value, onChange }: Props) {
-  const [show, setShow] = useState(false);
+  const [show, setShow] = useState(true);
   return (
     <label className="block">
       <span className="field-label">{label}</span>
