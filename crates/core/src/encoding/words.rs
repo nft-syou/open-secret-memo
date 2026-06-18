@@ -21,6 +21,7 @@ fn word_index() -> &'static HashMap<&'static str, u16> {
     })
 }
 
+/// Encode a payload as a Japanese BIP-39 word sequence (base-2048), words joined by `、` (U+3001).
 pub fn encode_words(payload: &Payload) -> String {
     let payload_bytes = payload.to_bytes();
     let mut bits: Vec<u8> = Vec::new();
@@ -41,6 +42,8 @@ pub fn encode_words(payload: &Payload) -> String {
     words.join("\u{3001}") // "、"
 }
 
+/// Decode a Japanese BIP-39 word sequence back into a payload.
+/// Returns [`FormatError::InvalidWord`] for an unknown word, or [`FormatError::Malformed`] for empty/short input.
 pub fn decode_words(s: &str) -> Result<Payload, FormatError> {
     let map = word_index();
     let mut bits: Vec<u8> = Vec::new();
@@ -119,5 +122,11 @@ mod tests {
     fn unknown_word_is_reported() {
         let err = decode_words("notarealword").unwrap_err();
         assert_eq!(err, FormatError::InvalidWord("notarealword".to_string()));
+    }
+
+    #[test]
+    fn empty_input_is_malformed() {
+        assert_eq!(decode_words(""), Err(FormatError::Malformed));
+        assert_eq!(decode_words("   "), Err(FormatError::Malformed));
     }
 }

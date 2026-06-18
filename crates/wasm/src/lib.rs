@@ -28,10 +28,11 @@ pub fn encrypt(
     params.validate().map_err(|e| JsError::new(&e.to_string()))?;
     let mut rng = OsRng;
     let payload = core_encrypt(plaintext.as_bytes(), passphrase, params, &mut rng);
-    Ok(match format {
-        "words" => encode_words(&payload),
-        _ => encode_standard(&payload),
-    })
+    match format {
+        "standard" => Ok(encode_standard(&payload)),
+        "words" => Ok(encode_words(&payload)),
+        other => Err(JsError::new(&format!("unknown format: {other}"))),
+    }
 }
 
 #[wasm_bindgen]
@@ -53,7 +54,7 @@ pub fn decrypt(ciphertext: &str, passphrase: &str) -> DecryptOutcome {
 fn from_format_error(e: FormatError) -> DecryptOutcome {
     match e {
         FormatError::Malformed => err("malformed", ""),
-        FormatError::UnsupportedVersion(_) => err("unsupported_version", ""),
+        FormatError::UnsupportedVersion(v) => err("unsupported_version", &v.to_string()),
         FormatError::InvalidWord(w) => err("invalid_word", &w),
     }
 }

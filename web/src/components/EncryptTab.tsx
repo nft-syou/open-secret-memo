@@ -117,7 +117,7 @@ export default function EncryptTab() {
       </details>
 
       <div className="flex flex-col gap-3 border-t border-stone-200 pt-4 sm:flex-row sm:items-center">
-        <button onClick={onEncrypt} disabled={!canEncrypt} className="button-primary sm:w-40">
+        <button type="button" onClick={onEncrypt} disabled={!canEncrypt} className="button-primary sm:w-40">
           {busy ? "処理中..." : "暗号化する"}
         </button>
         <p className="text-xs leading-5 text-stone-500">
@@ -134,8 +134,9 @@ export default function EncryptTab() {
               <p className="field-hint">このテキストを保存してください。</p>
             </div>
             <div className="flex gap-2">
-              <button className="button-secondary" onClick={() => navigator.clipboard.writeText(output)}>コピー</button>
+              <button type="button" className="button-secondary" onClick={() => navigator.clipboard.writeText(output)}>コピー</button>
               <button
+                type="button"
                 className="button-secondary"
                 onClick={() => {
                   const blob = new Blob([output], { type: "text/plain" });

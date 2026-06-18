@@ -52,6 +52,9 @@ export default function App() {
           <section className="rounded-lg border border-stone-300 bg-stone-50/85 p-2 shadow-sm">
             <div className="grid grid-cols-2 gap-2" role="tablist" aria-label="操作の選択">
               <button
+                id="tab-encrypt"
+                type="button"
+                aria-controls="panel-encrypt"
                 role="tab"
                 aria-selected={tab === "encrypt"}
                 onClick={() => selectTab("encrypt")}
@@ -65,6 +68,9 @@ export default function App() {
                 暗号化
               </button>
               <button
+                id="tab-decrypt"
+                type="button"
+                aria-controls="panel-decrypt"
                 role="tab"
                 aria-selected={tab === "decrypt"}
                 onClick={() => selectTab("decrypt")}
@@ -79,11 +85,11 @@ export default function App() {
               </button>
             </div>
             <div className="mt-2 rounded-md bg-white p-4 shadow-sm sm:p-6">
-              <div hidden={tab !== "encrypt"}>
+              <div id="panel-encrypt" role="tabpanel" aria-labelledby="tab-encrypt" hidden={tab !== "encrypt"}>
                 <EncryptTab />
               </div>
               {decryptMounted && (
-                <div hidden={tab !== "decrypt"}>
+                <div id="panel-decrypt" role="tabpanel" aria-labelledby="tab-decrypt" hidden={tab !== "decrypt"}>
                   <Suspense fallback={<div className="field-hint py-8 text-center">読み込み中...</div>}>
                     <DecryptTab />
                   </Suspense>

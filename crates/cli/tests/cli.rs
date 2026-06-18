@@ -48,3 +48,14 @@ fn verify_passes_on_bundled_vectors() {
         .assert()
         .success();
 }
+
+#[test]
+fn decrypt_non_utf8_stdin_errors_cleanly() {
+    Command::cargo_bin("osm")
+        .unwrap()
+        .args(["decrypt", "--passphrase", "pw"])
+        .write_stdin(vec![0xff, 0xfe, 0x00])
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("UTF-8"));
+}

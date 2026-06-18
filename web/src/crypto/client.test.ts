@@ -19,6 +19,7 @@ class FakeWorker {
 }
 
 beforeEach(() => {
+  vi.resetModules();
   vi.stubGlobal("Worker", FakeWorker);
 });
 
