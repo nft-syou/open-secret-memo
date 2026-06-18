@@ -31,6 +31,12 @@ function getWorker(): Worker {
         resolve(rest);
       }
     };
+    worker.onerror = () => {
+      for (const [id, resolve] of pending) {
+        pending.delete(id);
+        resolve({ ok: false, text: "worker error" });
+      }
+    };
   }
   return worker;
 }

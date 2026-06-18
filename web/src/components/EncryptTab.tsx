@@ -15,6 +15,7 @@ export default function EncryptTab() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [output, setOutput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const mismatch = confirm.length > 0 && pass !== confirm;
   const canEncrypt = memo.length > 0 && pass.length > 0 && pass === confirm && !busy;
@@ -22,14 +23,13 @@ export default function EncryptTab() {
 
   async function onEncrypt() {
     setBusy(true);
+    setError(null);
     try {
       const ct = await encryptMemo({ plaintext: memo, passphrase: pass, mCost, tCost, pCost, format });
       setOutput(ct);
-      if (clearAfter) {
-        setMemo("");
-        setPass("");
-        setConfirm("");
-      }
+      if (clearAfter) { setMemo(""); setPass(""); setConfirm(""); }
+    } catch {
+      setError("暗号化に失敗しました。上級者オプションのArgon2パラメータが範囲内か確認してください。");
     } finally {
       setBusy(false);
     }
@@ -73,13 +73,13 @@ export default function EncryptTab() {
       <details open={showAdvanced} onToggle={(e) => setShowAdvanced((e.target as HTMLDetailsElement).open)}>
         <summary>上級者オプション（Argon2id）</summary>
         <label className="block text-sm">メモリ(KiB)
-          <input type="number" aria-label="m_cost" value={mCost} onChange={(e) => setMCost(Number(e.target.value))} className="text-slate-900 ml-2 rounded" />
+          <input type="number" aria-label="m_cost" value={mCost} min={8192} max={1048576} onChange={(e) => setMCost(Number(e.target.value))} className="text-slate-900 ml-2 rounded" />
         </label>
         <label className="block text-sm">反復回数
-          <input type="number" aria-label="t_cost" value={tCost} onChange={(e) => setTCost(Number(e.target.value))} className="text-slate-900 ml-2 rounded" />
+          <input type="number" aria-label="t_cost" value={tCost} min={1} onChange={(e) => setTCost(Number(e.target.value))} className="text-slate-900 ml-2 rounded" />
         </label>
         <label className="block text-sm">並列数
-          <input type="number" aria-label="p_cost" value={pCost} onChange={(e) => setPCost(Number(e.target.value))} className="text-slate-900 ml-2 rounded" />
+          <input type="number" aria-label="p_cost" value={pCost} min={1} onChange={(e) => setPCost(Number(e.target.value))} className="text-slate-900 ml-2 rounded" />
         </label>
       </details>
 
@@ -95,6 +95,7 @@ export default function EncryptTab() {
       >
         暗号化する
       </button>
+      {error && <p className="text-red-400 text-sm mt-1">{error}</p>}
       <p className="text-xs text-slate-400 mt-1">合言葉を忘れると復号できません。この内容はサーバーに送信されません。</p>
 
       {output && (
@@ -109,6 +110,7 @@ export default function EncryptTab() {
                 a.href = URL.createObjectURL(blob);
                 a.download = "secret.osm.txt";
                 a.click();
+                URL.revokeObjectURL(a.href);
               }}
             >
               txt保存
