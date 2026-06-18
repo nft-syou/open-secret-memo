@@ -46,7 +46,7 @@ jobs:
           cd web
           pnpm install --frozen-lockfile
           pnpm build:wasm
-          pnpm test --run
+          pnpm test
           pnpm exec tsc --noEmit
 
   e2e:
