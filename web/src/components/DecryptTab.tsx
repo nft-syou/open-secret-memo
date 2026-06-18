@@ -54,7 +54,7 @@ export default function DecryptTab() {
       <PassphraseField label="合言葉" value={pass} onChange={setPass} />
 
       <div className="flex flex-col gap-3 border-t border-stone-200 pt-4 sm:flex-row sm:items-center">
-        <button onClick={onDecrypt} disabled={!canDecrypt} className="button-primary sm:w-40">
+        <button type="button" onClick={onDecrypt} disabled={!canDecrypt} className="button-primary sm:w-40">
           {busy ? "処理中..." : "復号する"}
         </button>
         <p className="text-xs leading-5 text-stone-500">
@@ -72,8 +72,8 @@ export default function DecryptTab() {
               <p className="field-hint">必要に応じてコピーできます。</p>
             </div>
             <div className="flex gap-2">
-              <button className="button-secondary" onClick={() => navigator.clipboard.writeText(plain)}>コピー</button>
-              <button className="button-secondary" onClick={() => setHidden((h) => !h)}>{hidden ? "表示" : "隠す"}</button>
+              <button type="button" className="button-secondary" onClick={() => navigator.clipboard.writeText(plain)}>コピー</button>
+              <button type="button" className="button-secondary" onClick={() => setHidden((h) => !h)}>{hidden ? "表示" : "隠す"}</button>
             </div>
           </div>
           <div className="min-h-24 whitespace-pre-wrap rounded border border-stone-300 bg-stone-950 px-3 py-3 text-sm leading-6 text-stone-50 shadow-inner">

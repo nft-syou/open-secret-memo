@@ -32,4 +32,14 @@ describe("App", () => {
     expect(screen.getByText("Copyright © 2026 Open Secret Memo contributors.")).toBeInTheDocument();
     expect(screen.getByText("Released under the MIT License.")).toBeInTheDocument();
   });
+
+  it("wires tabs to their panels with ARIA", () => {
+    render(<App />);
+    const encryptTab = screen.getByRole("tab", { name: "暗号化" });
+    expect(encryptTab).toHaveAttribute("aria-controls", "panel-encrypt");
+    expect(encryptTab).toHaveAttribute("type", "button");
+    const panel = document.getElementById("panel-encrypt");
+    expect(panel).toHaveAttribute("role", "tabpanel");
+    expect(panel).toHaveAttribute("aria-labelledby", "tab-encrypt");
+  });
 });
