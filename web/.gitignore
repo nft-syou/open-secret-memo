@@ -2,3 +2,5 @@ node_modules
 dist
 src/wasm
 dev-dist
+playwright-report
+test-results

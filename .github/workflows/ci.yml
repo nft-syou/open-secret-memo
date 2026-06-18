@@ -48,3 +48,31 @@ jobs:
           pnpm build:wasm
           pnpm test --run
           pnpm exec tsc --noEmit
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: Vendor wordlist
+        run: |
+          test -f crates/core/data/bip39-japanese.txt || \
+            curl -fsSL https://raw.githubusercontent.com/bitcoin/bips/master/bip-0039/japanese.txt \
+              -o crates/core/data/bip39-japanese.txt
+      - name: Install deps + browser
+        run: |
+          cd web
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+      - name: Run e2e
+        run: cd web && pnpm test:e2e
