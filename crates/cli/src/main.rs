@@ -43,10 +43,10 @@ enum Command {
     },
 }
 
-fn read_stdin() -> Vec<u8> {
+fn read_stdin() -> std::io::Result<Vec<u8>> {
     let mut buf = Vec::new();
-    std::io::stdin().read_to_end(&mut buf).expect("read stdin");
-    buf
+    std::io::stdin().read_to_end(&mut buf)?;
+    Ok(buf)
 }
 
 fn main() -> ExitCode {
@@ -58,7 +58,13 @@ fn main() -> ExitCode {
                 eprintln!("invalid parameters: {e}");
                 return ExitCode::FAILURE;
             }
-            let plaintext = read_stdin();
+            let plaintext = match read_stdin() {
+                Ok(b) => b,
+                Err(e) => {
+                    eprintln!("failed to read stdin: {e}");
+                    return ExitCode::FAILURE;
+                }
+            };
             let mut rng = OsRng;
             let payload = encrypt(&plaintext, &passphrase, params, &mut rng);
             let out = if words { encode_words(&payload) } else { encode_standard(&payload) };
@@ -66,7 +72,20 @@ fn main() -> ExitCode {
             ExitCode::SUCCESS
         }
         Command::Decrypt { passphrase } => {
-            let input = String::from_utf8(read_stdin()).unwrap_or_default();
+            let raw = match read_stdin() {
+                Ok(b) => b,
+                Err(e) => {
+                    eprintln!("failed to read stdin: {e}");
+                    return ExitCode::FAILURE;
+                }
+            };
+            let input = match String::from_utf8(raw) {
+                Ok(s) => s,
+                Err(_) => {
+                    eprintln!("input is not valid UTF-8 text");
+                    return ExitCode::FAILURE;
+                }
+            };
             let payload = match detect_and_decode(&input) {
                 Ok(p) => p,
                 Err(e) => {
@@ -76,7 +95,10 @@ fn main() -> ExitCode {
             };
             match decrypt(&payload, &passphrase) {
                 Ok(plaintext) => {
-                    std::io::stdout().write_all(&plaintext).unwrap();
+                    if let Err(e) = std::io::stdout().write_all(&plaintext) {
+                        eprintln!("failed to write output: {e}");
+                        return ExitCode::FAILURE;
+                    }
                     ExitCode::SUCCESS
                 }
                 Err(e) => {
