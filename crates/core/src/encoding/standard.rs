@@ -9,11 +9,14 @@ pub fn standard_prefix(version: u8) -> String {
     format!("OSM{version}.")
 }
 
+/// Encode a payload as the standard text form: `"OSM" + <version digit> + "." + base64url(no pad)`.
 pub fn encode_standard(payload: &Payload) -> String {
     let body = URL_SAFE_NO_PAD.encode(payload.to_bytes());
     format!("{}{}", standard_prefix(payload.version), body)
 }
 
+/// Decode the standard text form (`OSM<digit>.<base64url>`). Surrounding whitespace is trimmed.
+/// Returns [`FormatError::Malformed`] if the prefix, version digit, or base64 body is invalid.
 pub fn decode_standard(s: &str) -> Result<Payload, FormatError> {
     let s = s.trim();
     // Expect "OSM" + one ASCII digit version + "." + base64url body.
@@ -65,5 +68,11 @@ mod tests {
     #[test]
     fn rejects_bad_base64() {
         assert_eq!(decode_standard("OSM1.!!!notbase64!!!"), Err(FormatError::Malformed));
+    }
+
+    #[test]
+    fn rejects_multi_digit_version_prefix() {
+        // "OSM12." has a two-character version field; only a single ASCII digit is valid.
+        assert_eq!(decode_standard("OSM12.AAAA"), Err(FormatError::Malformed));
     }
 }
