@@ -1,4 +1,4 @@
-import { APP_VERSION, CRYPTO_SUMMARY, GITHUB_URL, IPFS_CID, SPEC_URL } from "../lib/appInfo";
+import { APP_VERSION, CRYPTO_SUMMARY, GITHUB_URL, IPFS_CID, RELEASES_URL, SPEC_URL } from "../lib/appInfo";
 
 export default function SafetyAccordion() {
   return (
@@ -13,6 +13,7 @@ export default function SafetyAccordion() {
           <p>バージョン: {APP_VERSION}</p>
           <p>ソースコード: <a className="font-semibold text-teal-800 underline" href={GITHUB_URL}>GitHub</a></p>
           <p>仕様書: <a className="font-semibold text-teal-800 underline" href={SPEC_URL}>SPEC.md</a></p>
+          <p>復旧キット: <a className="font-semibold text-teal-800 underline" href={RELEASES_URL}>GitHub Releases</a></p>
           <p className="break-all">IPFS CID: {IPFS_CID || "（ミラー準備中）"}</p>
         </div>
         <p className="font-semibold text-stone-950">合言葉のヒント</p>

@@ -88,6 +88,11 @@ export default function App() {
             <SafetyAccordion />
           </aside>
         </div>
+
+        <footer className="border-t border-stone-300/70 py-4 text-xs leading-5 text-stone-500 sm:flex sm:items-center sm:justify-between">
+          <p>Copyright © 2026 Open Secret Memo contributors.</p>
+          <p>Released under the MIT License.</p>
+        </footer>
       </div>
     </main>
   );

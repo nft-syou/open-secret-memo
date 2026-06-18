@@ -25,4 +25,11 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("tab", { name: "復号" }));
     expect(screen.getByDisplayValue("OSM1.saved")).toBeInTheDocument();
   });
+
+  it("shows copyright and MIT license information in the footer", () => {
+    render(<App />);
+
+    expect(screen.getByText("Copyright © 2026 Open Secret Memo contributors.")).toBeInTheDocument();
+    expect(screen.getByText("Released under the MIT License.")).toBeInTheDocument();
+  });
 });

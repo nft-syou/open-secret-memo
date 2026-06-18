@@ -8,5 +8,9 @@ describe("SafetyAccordion", () => {
     fireEvent.click(screen.getByText("このサイトは安全？"));
     expect(screen.getByText(/サーバーに送信しません/)).toBeInTheDocument();
     expect(screen.getByText(/Argon2id \+ AES-256-GCM/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "GitHub Releases" })).toHaveAttribute(
+      "href",
+      "https://github.com/nft-syou/open-secret-memo/releases"
+    );
   });
 });
