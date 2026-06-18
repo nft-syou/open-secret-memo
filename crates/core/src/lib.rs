@@ -4,6 +4,7 @@ mod error;
 mod params;
 mod payload;
 mod rng;
+pub mod vectors;
 
 pub use crypto::{decrypt, encrypt, normalize_passphrase};
 pub use encoding::{detect_and_decode, decode_standard, decode_words, encode_standard, encode_words, standard_prefix, WORDLIST};

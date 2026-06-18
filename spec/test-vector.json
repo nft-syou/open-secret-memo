@@ -1,0 +1,47 @@
+[
+  {
+    "name": "ascii-basic",
+    "passphrase": "紙袋、みかん、夜道、ラジオ",
+    "plaintext_utf8": "secret note",
+    "argon2": {
+      "m_cost": 8192,
+      "t_cost": 1,
+      "p_cost": 1
+    },
+    "salt_hex": "11111111111111111111111111111111",
+    "nonce_hex": "222222222222222222222222",
+    "payload_hex": "4f534d0100002000000000010111111111111111111111111111111111222222222222222222222222f5c1bda82c19526083dd9fdc2aa35af3039129251722ecfce7af20",
+    "standard": "OSM1.T1NNAQAAIAAAAAABAREREREREREREREREREREREiIiIiIiIiIiIiIiL1wb2oLBlSYIPdn9wqo1rzA5EpJRci7PznryA",
+    "words": "あいこくしん、あいこくしん、いろえんぴつ、てきとう、きなが、そとづら、あいこくしん、あまど、あいこくしん、あいこくしん、あいこくしん、あたえる、いろえんぴつ、たおる、けっこん、おこなう、いろえんぴつ、たおる、けっこん、おこなう、いろえんぴつ、たおる、けっこん、おこなう、おこなう、いろえんぴつ、たおる、けっこん、おこなう、いろえんぴつ、たおる、けっこん、おしえる、なまえ、ずさん、こせき、はかる、とどける、そよかぜ、せんゆう、てつがく、まとめ、とっくん、ぬぐう、きおん、はんぶん、てんめつ、てんき、おしえる、しめる、くうぐん、さみだれ、あいこくしん"
+  },
+  {
+    "name": "japanese-memo",
+    "passphrase": "あいことば",
+    "plaintext_utf8": "東京駅 18:30 集合 予約番号 AB-1234",
+    "argon2": {
+      "m_cost": 8192,
+      "t_cost": 2,
+      "p_cost": 1
+    },
+    "salt_hex": "abababababababababababababababab",
+    "nonce_hex": "cdcdcdcdcdcdcdcdcdcdcdcd",
+    "payload_hex": "4f534d01000020000000000201ababababababababababababababababcdcdcdcdcdcdcdcdcdcdcdcdade5c2f0cdbddcc7adeb6cbb02fb21dce603b8423c105f540544bcdeea4ebd55c0917ecaea64c1a8bd19e8af586093b7b113bb248722a4502dd227",
+    "standard": "OSM1.T1NNAQAAIAAAAAACAaurq6urq6urq6urq6urq6vNzc3Nzc3Nzc3Nzc2t5cLwzb3cx63rbLsC-yHc5gO4QjwQX1QFRLze6k69VcCRfsrqZMGovRnor1hgk7exE7skhyKkUC3SJw",
+    "words": "あいこくしん、あいこくしん、うれゆき、てきとう、きなが、そとづら、あいこくしん、あまど、あいこくしん、あいこくしん、あいこくしん、あまど、えいせい、ふはい、なやむ、せっかく、ないす、さのう、めいえん、こんびに、ねんかん、ふはい、なやむ、せっかく、ひびく、すうせん、せあぶら、つもる、ほくろ、みんぞく、きもの、ねみみ、ひはん、すごい、すのこ、まぬけ、ほうほう、もんく、おいしい、のたまう、しんせいじ、へいあん、のりもの、けちゃっぷ、ひみつ、あずき、まぜる、けらい、いらすと、るいせき、あさひ、たこやき、ひひょう、せたい、くきょう、ともる、はいそう、たにん、にほん、ふつか、こうじ、ぶたにく、よさん、くちさき、なわとび、はたん、おどろかす、ずさん、いわい、ほしつ、だんろ、みじかい、てんぷら、そまる、せきゆ、こおり"
+  },
+  {
+    "name": "empty-plaintext",
+    "passphrase": "x",
+    "plaintext_utf8": "",
+    "argon2": {
+      "m_cost": 8192,
+      "t_cost": 1,
+      "p_cost": 1
+    },
+    "salt_hex": "01010101010101010101010101010101",
+    "nonce_hex": "020202020202020202020202",
+    "payload_hex": "4f534d010000200000000001010101010101010101010101010101010102020202020202020202020261c23d43f54266b2077f83c45ad27916",
+    "standard": "OSM1.T1NNAQAAIAAAAAABAQEBAQEBAQEBAQEBAQEBAQECAgICAgICAgICAgJhwj1D9UJmsgd_g8Ra0nkW",
+    "words": "あいこくしん、あいこくしん、いばる、てきとう、きなが、そとづら、あいこくしん、あまど、あいこくしん、あいこくしん、あいこくしん、あたえる、いよく、そとづら、あまど、おおう、あこがれる、いくぶん、けいけん、あたえる、いよく、そとづら、あまど、おおう、あたえる、いよく、そとづら、あまど、おおう、あこがれる、いくぶん、けいけん、あたる、いのる、たんおん、たいる、こまる、きぞく、はんてい、やちん、たいうん、おしいれ、にんち、ゆでる、さんこう"
+  }
+]
