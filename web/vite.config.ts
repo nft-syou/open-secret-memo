@@ -32,6 +32,10 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
-    setupFiles: ["./src/test-setup.ts"]
+    setupFiles: ["./src/test-setup.ts"],
+    // Unit tests live under src/. Playwright e2e specs (e2e/*.spec.ts) import
+    // @playwright/test and must NOT be collected by Vitest — Playwright runs
+    // them via its own config (testDir "./e2e", `pnpm test:e2e`).
+    include: ["src/**/*.{test,spec}.{ts,tsx}"]
   }
 });
