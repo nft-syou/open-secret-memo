@@ -3,7 +3,7 @@ use aes_gcm::{Aes256Gcm, Key, Nonce};
 use argon2::{Algorithm, Argon2, Params as A2Params, Version};
 use unicode_normalization::UnicodeNormalization;
 
-use crate::error::DecryptError;
+use crate::error::{DecryptError, FormatError};
 use crate::params::Argon2Params;
 use crate::payload::Payload;
 use crate::rng::Rng;
@@ -15,18 +15,18 @@ pub fn normalize_passphrase(passphrase: &str) -> Vec<u8> {
     normalized.trim().as_bytes().to_vec()
 }
 
-fn derive_key(passphrase: &str, salt: &[u8], params: &Argon2Params) -> [u8; 32] {
+fn derive_key(passphrase: &str, salt: &[u8], params: &Argon2Params) -> Result<[u8; 32], DecryptError> {
     let a2 = Argon2::new(
         Algorithm::Argon2id,
         Version::V0x13,
         A2Params::new(params.m_cost, params.t_cost, params.p_cost as u32, Some(32))
-            .expect("validated params"),
+            .map_err(|_| DecryptError::Format(FormatError::Malformed))?,
     );
     let pwd = normalize_passphrase(passphrase);
     let mut key = [0u8; 32];
     a2.hash_password_into(&pwd, salt, &mut key)
-        .expect("argon2 key derivation");
-    key
+        .map_err(|_| DecryptError::Format(FormatError::Malformed))?;
+    Ok(key)
 }
 
 pub fn encrypt(
@@ -50,7 +50,7 @@ pub fn encrypt(
     };
     let aad = payload.header();
 
-    let key = derive_key(passphrase, &salt, &params);
+    let key = derive_key(passphrase, &salt, &params).expect("encryption params must be valid");
     let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&key));
     let ct = cipher
         .encrypt(Nonce::from_slice(&nonce), AeadPayload { msg: plaintext, aad: &aad })
@@ -61,7 +61,7 @@ pub fn encrypt(
 
 pub fn decrypt(payload: &Payload, passphrase: &str) -> Result<Vec<u8>, DecryptError> {
     let aad = payload.header();
-    let key = derive_key(passphrase, &payload.salt, &payload.params);
+    let key = derive_key(passphrase, &payload.salt, &payload.params)?;
     let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&key));
     cipher
         .decrypt(
@@ -120,5 +120,23 @@ mod tests {
         let mut rng = FixedRng::new(vec![3u8]);
         let p = encrypt(b"", "pw", fast_params(), &mut rng);
         assert_eq!(decrypt(&p, "pw").unwrap(), b"");
+    }
+
+    #[test]
+    fn tampered_version_fails_via_aad() {
+        let mut rng = FixedRng::new(vec![7u8]);
+        let mut p = encrypt(b"secret note", "pw", fast_params(), &mut rng);
+        // version is in the AAD header but NOT in key derivation or the nonce,
+        // so changing it isolates that AAD is actually wired into AES-GCM.
+        p.version = 2;
+        assert_eq!(decrypt(&p, "pw"), Err(DecryptError::AuthenticationFailed));
+    }
+
+    #[test]
+    fn invalid_params_in_payload_does_not_panic() {
+        let mut rng = FixedRng::new(vec![7u8]);
+        let mut p = encrypt(b"x", "pw", fast_params(), &mut rng);
+        p.params.m_cost = 0; // argon2 rejects this; decrypt must return Err, not panic
+        assert!(decrypt(&p, "pw").is_err());
     }
 }
