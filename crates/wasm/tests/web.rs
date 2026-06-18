@@ -21,7 +21,17 @@ fn wrong_passphrase_reports_auth_failed() {
 
 #[wasm_bindgen_test]
 fn malformed_input_reports_malformed() {
-    let outcome = decrypt("not a ciphertext", "pw");
+    // "OSM1." prefix routes to the standard decoder; "!!!" is not valid base64url.
+    let outcome = decrypt("OSM1.!!!", "pw");
     assert!(!outcome.ok);
     assert_eq!(outcome.error_kind, "malformed");
+}
+
+#[wasm_bindgen_test]
+fn unknown_word_reports_invalid_word() {
+    // No "OSM" prefix => routes to the Japanese-wordlist decoder; this token is not in the list.
+    let outcome = decrypt("zzzznotaword", "pw");
+    assert!(!outcome.ok);
+    assert_eq!(outcome.error_kind, "invalid_word");
+    assert_eq!(outcome.error_word, "zzzznotaword");
 }

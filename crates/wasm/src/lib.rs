@@ -54,12 +54,7 @@ fn from_format_error(e: FormatError) -> DecryptOutcome {
     match e {
         FormatError::Malformed => err("malformed", ""),
         FormatError::UnsupportedVersion(_) => err("unsupported_version", ""),
-        // An unrecognized word means the input is not a valid ciphertext in
-        // any supported format.  From the JS caller's perspective this is
-        // indistinguishable from other garbled input, so we surface it as
-        // "malformed" rather than exposing the internal wordlist detail.
-        // The error_word field carries the offending token for diagnostics.
-        FormatError::InvalidWord(w) => err("malformed", &w),
+        FormatError::InvalidWord(w) => err("invalid_word", &w),
     }
 }
 
