@@ -6,7 +6,7 @@ use crate::payload::Payload;
 
 /// BIP-39 Japanese wordlist (2048 hiragana words), vendored at build time.
 pub static WORDLIST: [&str; 2048] = {
-    // include_str! splits at compile time via a helper build constant below.
+    // Array literal generated from data/bip39-japanese.txt into data/wordlist_array.in, pasted here at compile time via include!.
     include!(concat!(env!("CARGO_MANIFEST_DIR"), "/data/wordlist_array.in"))
 };
 

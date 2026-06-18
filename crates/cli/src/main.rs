@@ -86,10 +86,28 @@ fn main() -> ExitCode {
             }
         }
         Command::Verify { vectors } => {
-            let json = std::fs::read_to_string(&vectors).expect("read vectors file");
+            let json = match std::fs::read_to_string(&vectors) {
+                Ok(s) => s,
+                Err(e) => {
+                    eprintln!("failed to read vectors file: {e}");
+                    return ExitCode::FAILURE;
+                }
+            };
             for v in load_vectors(&json) {
-                let salt = hex_decode(&v.salt_hex);
-                let nonce = hex_decode(&v.nonce_hex);
+                let salt = match hex_decode(&v.salt_hex) {
+                    Ok(b) => b,
+                    Err(e) => {
+                        eprintln!("failed to decode hex in vector {}: {e}", v.name);
+                        return ExitCode::FAILURE;
+                    }
+                };
+                let nonce = match hex_decode(&v.nonce_hex) {
+                    Ok(b) => b,
+                    Err(e) => {
+                        eprintln!("failed to decode hex in vector {}: {e}", v.name);
+                        return ExitCode::FAILURE;
+                    }
+                };
                 let mut seed = salt;
                 seed.extend_from_slice(&nonce);
                 let mut rng = FixedRng::new(seed);
@@ -106,9 +124,15 @@ fn main() -> ExitCode {
     }
 }
 
-fn hex_decode(s: &str) -> Vec<u8> {
+fn hex_decode(s: &str) -> Result<Vec<u8>, String> {
+    if s.len() % 2 != 0 {
+        return Err(format!("odd-length hex string ({} chars)", s.len()));
+    }
     (0..s.len())
         .step_by(2)
-        .map(|i| u8::from_str_radix(&s[i..i + 2], 16).expect("valid hex"))
+        .map(|i| {
+            u8::from_str_radix(&s[i..i + 2], 16)
+                .map_err(|e| format!("invalid hex at offset {i}: {e}"))
+        })
         .collect()
 }

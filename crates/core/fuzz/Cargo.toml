@@ -30,3 +30,9 @@ name = "detect_and_decode"
 path = "fuzz_targets/detect_and_decode.rs"
 test = false
 doc = false
+
+[[bin]]
+name = "decrypt"
+path = "fuzz_targets/decrypt.rs"
+test = false
+doc = false
