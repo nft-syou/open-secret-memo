@@ -1,0 +1,28 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  kit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Vendor wordlist
+        run: |
+          test -f crates/core/data/bip39-japanese.txt || \
+            curl -fsSL https://raw.githubusercontent.com/bitcoin/bips/master/bip-0039/japanese.txt \
+              -o crates/core/data/bip39-japanese.txt
+      - name: Build recovery kit
+        run: bash scripts/build-recovery-kit.sh
+      - name: Attach kit to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/open-secret-memo-recovery-kit.zip
