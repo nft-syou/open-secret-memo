@@ -1,0 +1,24 @@
+# Open Secret Memo
+
+> サイトが消えても復号できる、オープン仕様の秘密メモツール。メモをブラウザ内だけで Argon2id + AES-256-GCM で暗号化し、暗号化済みテキストだけを任意の場所（クラウドメモ・チャット・自分宛メール等）に保存できる。合言葉・平文・復号結果はサーバーに送らず、保存もしない。
+
+Open Secret Memo はクライアント完結型（ブラウザ内 WASM、Rust 製）の暗号化メモツールです。サイトやホスティングが失われても復号できるよう、OSS・バイト単位の仕様書・テストベクター・オフライン復号キットを公開しています。**仕様書（SPEC.md）とテストベクター（test-vector.json）があれば、任意の言語で復号器を再実装できます。**
+
+注意: 合言葉・暗号文・復号後の秘密メモは AI や外部サービスに送らないでください。AI に渡すのは仕様書だけにし、復号スクリプトはローカルで実行してください。
+
+## 仕様・ドキュメント
+- [フォーマット仕様 SPEC.md](https://raw.githubusercontent.com/nft-syou/open-secret-memo/main/spec/SPEC.md): 暗号方式・鍵導出・41バイトのバイナリレイアウト・テキスト表現をバイト単位で定義。再実装の基準。
+- [テストベクター test-vector.json](https://raw.githubusercontent.com/nft-syou/open-secret-memo/main/spec/test-vector.json): 固定の合言葉・salt・nonce から決定論的に生成した正準データ。再実装の正しさを自己検証できる。
+- [README](https://raw.githubusercontent.com/nft-syou/open-secret-memo/main/README.md): 概要・使い方・開発手順・CLI。
+
+## ソースコード
+- [GitHub リポジトリ](https://github.com/nft-syou/open-secret-memo): 全実装（Rust コア / WASM / Web PWA / CLI / 復号キット）。MIT License。
+- [暗号コア crates/core](https://github.com/nft-syou/open-secret-memo/tree/main/crates/core): 依存最小の純粋 Rust 実装。暗号ロジックの唯一の真実。
+
+## 暗号方式（概要）
+- 鍵導出: Argon2id（既定 m=64MiB, t=1, p=1）、出力32バイト。合言葉は NFKC 正規化 + 前後trim 後に UTF-8 バイト列として入力（メモ本文は正規化しない）。
+- 暗号化: AES-256-GCM、12バイト nonce、16バイトタグ。先頭41バイトのヘッダ（マジック `OSM`・バージョン・Argon2パラメータ・salt(16)・nonce(12)）を AAD として認証し、改竄を検出。
+- テキスト表現: 標準形式 `OSM1.` + base64url、または BIP-39 日本語(ひらがな)2048語を基数2048の文字盤に使う「日本語単語列形式」。復号時は自動判別。
+
+## アプリ
+- [Open Secret Memo（本番）](https://osm.syou.io): ブラウザ内で暗号化／復号。オフライン対応 PWA。
