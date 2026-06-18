@@ -1,12 +1,22 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import EncryptTab from "./components/EncryptTab";
-import DecryptTab from "./components/DecryptTab";
-import SafetyAccordion from "./components/SafetyAccordion";
+
+const DecryptTab = lazy(() => import("./components/DecryptTab"));
+const SafetyAccordion = lazy(() => import("./components/SafetyAccordion"));
 
 type Tab = "encrypt" | "decrypt";
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("encrypt");
+  const [decryptMounted, setDecryptMounted] = useState(false);
+
+  function selectTab(nextTab: Tab) {
+    setTab(nextTab);
+    if (nextTab === "decrypt") {
+      setDecryptMounted(true);
+    }
+  }
+
   return (
     <main className="min-h-screen">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8">
@@ -44,7 +54,7 @@ export default function App() {
               <button
                 role="tab"
                 aria-selected={tab === "encrypt"}
-                onClick={() => setTab("encrypt")}
+                onClick={() => selectTab("encrypt")}
                 className={[
                   "min-h-12 rounded px-3 text-sm font-semibold transition",
                   tab === "encrypt"
@@ -57,7 +67,7 @@ export default function App() {
               <button
                 role="tab"
                 aria-selected={tab === "decrypt"}
-                onClick={() => setTab("decrypt")}
+                onClick={() => selectTab("decrypt")}
                 className={[
                   "min-h-12 rounded px-3 text-sm font-semibold transition",
                   tab === "decrypt"
@@ -72,9 +82,13 @@ export default function App() {
               <div hidden={tab !== "encrypt"}>
                 <EncryptTab />
               </div>
-              <div hidden={tab !== "decrypt"}>
-                <DecryptTab />
-              </div>
+              {decryptMounted && (
+                <div hidden={tab !== "decrypt"}>
+                  <Suspense fallback={<div className="field-hint py-8 text-center">読み込み中...</div>}>
+                    <DecryptTab />
+                  </Suspense>
+                </div>
+              )}
             </div>
           </section>
 
@@ -85,7 +99,9 @@ export default function App() {
                 メモ本文・合言葉・復号結果はサーバーへ送られません。暗号化済みテキストだけをコピーして保存します。
               </p>
             </div>
-            <SafetyAccordion />
+            <Suspense fallback={<div className="section-panel min-h-32" aria-busy="true" />}>
+              <SafetyAccordion />
+            </Suspense>
           </aside>
         </div>
 

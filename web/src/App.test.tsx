@@ -8,7 +8,7 @@ vi.mock("./crypto/client", () => ({
 }));
 
 describe("App", () => {
-  it("keeps form input values when switching tabs", () => {
+  it("keeps form input values when switching tabs", async () => {
     render(<App />);
 
     fireEvent.change(screen.getByLabelText("メモ本文"), { target: { value: "残したいメモ" } });
@@ -16,7 +16,7 @@ describe("App", () => {
     fireEvent.change(screen.getByLabelText("合言葉（確認）"), { target: { value: "見える合言葉" } });
 
     fireEvent.click(screen.getByRole("tab", { name: "復号" }));
-    fireEvent.change(screen.getByLabelText("暗号化済みテキスト"), { target: { value: "OSM1.saved" } });
+    fireEvent.change(await screen.findByLabelText("暗号化済みテキスト"), { target: { value: "OSM1.saved" } });
 
     fireEvent.click(screen.getByRole("tab", { name: "暗号化" }));
     expect(screen.getByDisplayValue("残したいメモ")).toBeInTheDocument();
