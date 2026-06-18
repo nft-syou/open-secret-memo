@@ -27,8 +27,12 @@ test("encrypt then decrypt round-trips in a real browser", async ({ page }) => {
 
 test("still works offline after first load (PWA precache)", async ({ page, context }) => {
   await page.goto("/");
-  // Let the service worker install and cache assets.
-  await page.waitForTimeout(2000);
+  // Wait until the service worker actually controls the page (precache done),
+  // rather than a fixed sleep — robust across slow/fast CI machines. The PWA is
+  // generated with clientsClaim, so `controller` is set once the SW activates.
+  await page.waitForFunction(() => !!navigator.serviceWorker?.controller, undefined, {
+    timeout: 20_000,
+  });
   await context.setOffline(true);
   await page.reload();
 

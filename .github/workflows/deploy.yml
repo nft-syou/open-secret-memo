@@ -10,7 +10,17 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    # Deploy only for: a manual dispatch, OR a successful CI run that came from a
+    # real push to THIS repo's main (not a pull_request, incl. a fork PR whose
+    # head branch is literally named "main"). The branches filter above matches
+    # workflow_run.head_branch, so the event/repository guards here are what
+    # actually prevent a fork PR from deploying attacker code with repo secrets.
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' ||
+          (github.event.workflow_run.conclusion == 'success' &&
+           github.event.workflow_run.event == 'push' &&
+           github.event.workflow_run.head_branch == 'main' &&
+           github.event.workflow_run.head_repository.full_name == github.repository) }}
     steps:
       - uses: actions/checkout@v4
         with:
