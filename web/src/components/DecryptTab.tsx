@@ -31,32 +31,53 @@ export default function DecryptTab() {
   }
 
   return (
-    <section>
-      <label className="block mb-2">
-        <span className="block text-sm">暗号化済みテキスト</span>
+    <section className="space-y-5">
+      <div>
+        <h2 className="text-xl font-bold text-stone-950">メモを復号</h2>
+        <p className="mt-1 text-sm leading-6 text-stone-600">
+          保存しておいた暗号化済みテキストと合言葉から、元のメモをこの画面内で復元します。
+        </p>
+      </div>
+
+      <label className="block">
+        <span className="field-label">暗号化済みテキスト</span>
         <textarea
           aria-label="暗号化済みテキスト"
           value={ciphertext}
           onChange={(e) => setCiphertext(e.target.value)}
-          className="w-full border rounded px-2 py-1 text-slate-900"
-          rows={4}
+          className="input-surface mt-1.5 min-h-36 font-mono text-sm"
+          rows={6}
+          placeholder="OSM1..."
         />
       </label>
-      <PassphraseField label="合言葉" value={pass} onChange={setPass} />
-      <button onClick={onDecrypt} disabled={!canDecrypt} className="bg-sky-600 disabled:opacity-40 rounded px-3 py-1">
-        復号する
-      </button>
 
-      {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
+      <PassphraseField label="合言葉" value={pass} onChange={setPass} />
+
+      <div className="flex flex-col gap-3 border-t border-stone-200 pt-4 sm:flex-row sm:items-center">
+        <button onClick={onDecrypt} disabled={!canDecrypt} className="button-primary sm:w-40">
+          {busy ? "処理中..." : "復号する"}
+        </button>
+        <p className="text-xs leading-5 text-stone-500">
+          復号結果は保存されません。必要なときだけ表示して、使い終わったら隠せます。
+        </p>
+      </div>
+
+      {error && <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
       {plain !== null && (
-        <div className="mt-3">
-          <div className="border rounded px-2 py-1 bg-slate-800 min-h-[3rem] whitespace-pre-wrap">
-            {hidden ? "••••••••" : plain}
+        <div className="section-panel">
+          <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h3 className="font-bold text-stone-950">復号結果</h3>
+              <p className="field-hint">必要に応じてコピーできます。</p>
+            </div>
+            <div className="flex gap-2">
+              <button className="button-secondary" onClick={() => navigator.clipboard.writeText(plain)}>コピー</button>
+              <button className="button-secondary" onClick={() => setHidden((h) => !h)}>{hidden ? "表示" : "隠す"}</button>
+            </div>
           </div>
-          <div className="flex gap-2 mt-1">
-            <button onClick={() => navigator.clipboard.writeText(plain)}>コピー</button>
-            <button onClick={() => setHidden((h) => !h)}>{hidden ? "表示" : "隠す"}</button>
+          <div className="min-h-24 whitespace-pre-wrap rounded border border-stone-300 bg-stone-950 px-3 py-3 text-sm leading-6 text-stone-50 shadow-inner">
+            {hidden ? "••••••••" : plain}
           </div>
         </div>
       )}
