@@ -1,4 +1,5 @@
 import { useState } from "react";
+import EncryptTab from "./components/EncryptTab";
 
 type Tab = "encrypt" | "decrypt";
 
@@ -28,7 +29,7 @@ export default function App() {
           復号
         </button>
       </div>
-      <div>{tab === "encrypt" ? <p>encrypt</p> : <p>decrypt</p>}</div>
+      <div>{tab === "encrypt" ? <EncryptTab /> : <p>decrypt</p>}</div>
     </main>
   );
 }
