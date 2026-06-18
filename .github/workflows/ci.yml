@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Vendor BIP-39 wordlist
+        run: |
+          test -f crates/core/data/bip39-japanese.txt || \
+            curl -fsSL https://raw.githubusercontent.com/bitcoin/bips/master/bip-0039/japanese.txt \
+              -o crates/core/data/bip39-japanese.txt
+      - name: cargo test (workspace)
+        run: cargo test --workspace
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: wasm-pack test
+        run: wasm-pack test --headless --firefox crates/wasm
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: Vendor wordlist + build wasm + test web
+        run: |
+          test -f crates/core/data/bip39-japanese.txt || \
+            curl -fsSL https://raw.githubusercontent.com/bitcoin/bips/master/bip-0039/japanese.txt \
+              -o crates/core/data/bip39-japanese.txt
+          cd web
+          pnpm install --frozen-lockfile
+          pnpm build:wasm
+          pnpm test --run
+          pnpm exec tsc --noEmit
