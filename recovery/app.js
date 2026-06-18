@@ -9,18 +9,29 @@ const errors = {
 };
 
 async function main() {
-  await init();
   const out = document.getElementById("out");
-  document.getElementById("go").addEventListener("click", () => {
+  const btn = document.getElementById("go");
+  try {
+    await init();
+  } catch (e) {
+    out.classList.add("err");
+    out.textContent = "復号エンジンの読み込みに失敗しました。簡易サーバー (python3 -m http.server) 経由で開いているか確認してください。";
+    btn.disabled = true;
+    return;
+  }
+  btn.addEventListener("click", () => {
     out.classList.remove("err");
-    const ct = document.getElementById("ct").value;
-    const pw = document.getElementById("pw").value;
-    const r = decrypt(ct, pw);
-    if (r.ok) {
-      out.textContent = r.text;
-    } else {
+    try {
+      const r = decrypt(document.getElementById("ct").value, document.getElementById("pw").value);
+      if (r.ok) {
+        out.textContent = r.text;
+      } else {
+        out.classList.add("err");
+        out.textContent = errors[r.error_kind] || "復号中にエラーが発生しました。";
+      }
+    } catch (e) {
       out.classList.add("err");
-      out.textContent = errors[r.error_kind] || "復号中にエラーが発生しました。";
+      out.textContent = "復号中に予期しないエラーが発生しました。";
     }
   });
 }
