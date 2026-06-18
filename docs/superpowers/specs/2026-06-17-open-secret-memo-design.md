@@ -285,6 +285,12 @@ m_cost=64MiB の Argon2id は WASM 線形メモリを確保する。wasm-pack/wa
 
 MVP では暗号文も含め一切保存しない（UI設定・テーマ・暗号文の保存機能はすべて MVP後）。
 
+## 実装で確定した仕様（後追い反映）
+
+- 日本語単語列形式は、可逆性のため **4バイトのビッグエンディアン長さプレフィックス**（payloadバイト長）をビット列の先頭に付けてから11ビット単位でエンコードする。復号時はこの長さを読んで正確なバイト数を復元する。
+- wasm 復号エラーの安定キー（UIが文言にマップ）: `malformed` / `unsupported_version` / `invalid_word` / `auth_failed` / `not_utf8`。
+- 暗号処理（Argon2id）は UI を固めないよう **Web Worker** 上で実行する。
+
 ## 9. MVP スコープ整理
 
 ### MVP に含む
