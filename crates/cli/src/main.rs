@@ -4,8 +4,8 @@ use std::process::ExitCode;
 use clap::{Parser, Subcommand};
 use osm_core::vectors::load_vectors;
 use osm_core::{
-    decrypt, detect_and_decode, encode_standard, encode_words, encrypt, Argon2Params, FixedRng,
-    OsRng,
+    decrypt, detect_and_decode, encode_standard, encode_words, encode_words_kanji, encrypt,
+    Argon2Params, FixedRng, OsRng,
 };
 
 #[derive(Parser)]
@@ -30,6 +30,9 @@ enum Command {
         /// Output the Japanese wordlist form instead of standard.
         #[arg(long)]
         words: bool,
+        /// Output the experimental kanji-mixed form instead of standard.
+        #[arg(long)]
+        kanji: bool,
     },
     /// Decrypt a ciphertext read from stdin; prints the plaintext to stdout.
     Decrypt {
@@ -52,7 +55,7 @@ fn read_stdin() -> std::io::Result<Vec<u8>> {
 fn main() -> ExitCode {
     let cli = Cli::parse();
     match cli.command {
-        Command::Encrypt { passphrase, m_cost, t_cost, p_cost, words } => {
+        Command::Encrypt { passphrase, m_cost, t_cost, p_cost, words, kanji } => {
             let params = Argon2Params { m_cost, t_cost, p_cost };
             if let Err(e) = params.validate() {
                 eprintln!("invalid parameters: {e}");
@@ -67,7 +70,13 @@ fn main() -> ExitCode {
             };
             let mut rng = OsRng;
             let payload = encrypt(&plaintext, &passphrase, params, &mut rng);
-            let out = if words { encode_words(&payload) } else { encode_standard(&payload) };
+            let out = if kanji {
+                encode_words_kanji(&payload)
+            } else if words {
+                encode_words(&payload)
+            } else {
+                encode_standard(&payload)
+            };
             println!("{out}");
             ExitCode::SUCCESS
         }

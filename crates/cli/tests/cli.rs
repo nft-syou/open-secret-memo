@@ -23,6 +23,24 @@ fn encrypt_then_decrypt_roundtrip() {
 }
 
 #[test]
+fn encrypt_kanji_then_decrypt_roundtrip() {
+    let assert = Command::cargo_bin("osm")
+        .unwrap()
+        .args(["encrypt", "--passphrase", "k", "--m-cost", "8192", "--kanji"])
+        .write_stdin("漢字メモ")
+        .assert()
+        .success();
+    let ct = String::from_utf8(assert.get_output().stdout.clone()).unwrap();
+    Command::cargo_bin("osm")
+        .unwrap()
+        .args(["decrypt", "--passphrase", "k"])
+        .write_stdin(ct.trim().to_string())
+        .assert()
+        .success()
+        .stdout("漢字メモ");
+}
+
+#[test]
 fn decrypt_wrong_passphrase_fails() {
     let assert = Command::cargo_bin("osm")
         .unwrap()
