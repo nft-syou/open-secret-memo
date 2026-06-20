@@ -66,10 +66,33 @@ read L payload bytes. Trailing bits are zero padding.
 > Note: this uses the BIP-39 wordlist purely as an encoding alphabet. It is NOT a
 > wallet seed phrase and carries no BIP-39 checksum in v1.
 
+### 5.3 Kanji-mixed form (experimental)
+An index-aligned kanji "skin" of the §5.2 wordlist. The encoding is identical to
+§5.2; only the alphabet differs — `kanji_wordlist[index]` replaces `wordlist[index]`.
+The kanji wordlist shares indices with the hiragana wordlist: each entry is either
+the standard 常用漢字 spelling of the same word, or (when no safe, unambiguous kanji
+spelling exists) the original BIP-39 hiragana. The output is therefore 漢字混じり.
+
+An entry is written in kanji only if ALL hold: every character is 常用漢字; it has no
+okurigana; the reading maps to a single unambiguous standard spelling; it is
+NFC-stable. Otherwise the hiragana is kept. The frozen list lives at
+`crates/core/data/bip39-japanese-kanji.txt`.
+
+Normalization: the BIP-39 hiragana base is NFKD. List generation matches via NFC;
+kana-fallback entries keep BIP-39's NFKD bytes (so indices stay parallel to §5.2);
+kanji entries are NFC-stable atomic ideographs (stable under every normalization form).
+
+> Status: EXPERIMENTAL. The standard form (§5.1) is recommended for long-term
+> storage. The kanji list is not yet frozen; a reproducibility test vector will be
+> added once it has been audited and frozen.
+
 ## 6. Detection
 
 - Input matching `^OSM[0-9]\.` is the standard form.
-- Otherwise it is parsed as the wordlist form.
+- Otherwise it is parsed as the hiragana wordlist form (§5.2), falling back to the
+  experimental kanji form (§5.3) when a token is absent from the hiragana wordlist.
+  Because the two wordlists share indices, an all-kana input decodes identically
+  under either table.
 
 ## 7. Test vectors
 
