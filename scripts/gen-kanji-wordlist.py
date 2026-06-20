@@ -8,13 +8,18 @@ are NOT redistributed. The output is factual orthographic data, index-aligned wi
 bitcoin/bips bip-0039/japanese.txt.
 
 Per BIP-39 reading, choose the most natural standard written form:
+  0. override   — scripts/kanji-overrides.tsv: native-speaker curation that wins over
+                  the automatic rules (may use non-常用 kanji / katakana: 焚き火, ニキビ).
   1. kanji      — JMdict kanji writing whose kanji chars are all 常用漢字 (kana such as
-                  okurigana allowed). Single candidate taken as-is (愛国心); multiple
-                  resolved by JMdict frequency markers (感謝 over 官舎).
-  2. katakana   — loanwords/foreign words (JMdict stores the reading in katakana):
+                  okurigana allowed). Single candidate as-is (愛国心); multiple resolved
+                  by JMdict frequency markers (感謝 over 官舎).
+  2. katakana   — loanwords/foreign words (JMdict entry whose readings are all katakana):
                   あめりか→アメリカ, たいみんぐ→タイミング.
   3. kanji-name — proper nouns via JMnedict (place/person names): かなざわし→金沢市.
-  4. hiragana   — otherwise keep the original BIP-39 hiragana.
+  4. hiragana   — otherwise keep the BIP-39 hiragana (always emitted NFC).
+
+All output entries are NFC (the BIP-39 source is NFKD; emitting NFC fixes broken
+combining dakuten that would otherwise break search/compare/dictionary processing).
 The chosen string is just an alphabet symbol for the base-2048 encoder.
 """
 import gzip, io, sys, unicodedata, urllib.request
@@ -25,6 +30,7 @@ from pathlib import Path
 BIP39 = Path("crates/core/data/bip39-japanese.txt")
 OUT = Path("crates/core/data/bip39-japanese-kanji.txt")
 REPORT = Path("scripts/kanji-wordlist-report.tsv")
+OVERRIDES = Path("scripts/kanji-overrides.tsv")
 JMDICT_URL = "http://ftp.edrdg.org/pub/Nihongo/JMdict_e.gz"
 JMNEDICT_URL = "http://ftp.edrdg.org/pub/Nihongo/JMnedict.xml.gz"
 KANJIDIC_URL = "http://ftp.edrdg.org/pub/Nihongo/kanjidic2.xml.gz"
@@ -48,6 +54,20 @@ def fetch_gz(url: str) -> bytes:
     print(f"fetching {url} ...", file=sys.stderr)
     with urllib.request.urlopen(url, timeout=180) as r:
         return gzip.decompress(r.read())
+
+
+def load_overrides() -> dict:
+    """scripts/kanji-overrides.tsv: 'reading<TAB>output' native-speaker curation."""
+    if not OVERRIDES.exists():
+        return {}
+    out = {}
+    for line in OVERRIDES.read_text(encoding="utf-8").splitlines():
+        if not line.strip() or line.startswith("#"):
+            continue
+        reading, _, value = line.partition("\t")
+        if reading.strip() and value.strip():
+            out[nfc(reading.strip())] = nfc(value.strip())
+    return out
 
 
 def load_jouyou() -> set:
@@ -80,9 +100,8 @@ def load_jmdict():
             rebs = [r.findtext("reb") for r in el.findall("r_ele")]
             rebs = [x for x in rebs if x]
             # A word is "katakana" only when ALL of an entry's readings are katakana —
-            # i.e. an inherently katakana word (loanword/foreign: アメリカ, タイミング).
-            # Native words that merely list a katakana variant (うっかり/ウッカリ) keep a
-            # hiragana reading, so they are excluded.
+            # an inherently katakana word (loanword/foreign). Native words that merely
+            # list a katakana variant (うっかり/ウッカリ) keep a hiragana reading.
             entry_all_kata = bool(rebs) and all(
                 all(0x30A1 <= ord(c) <= 0x30FF or c == "ー" for c in x) for x in rebs
             )
@@ -143,16 +162,22 @@ def score(tags: set):
 def main() -> int:
     words = [w for w in BIP39.read_text(encoding="utf-8").split("\n") if w]
     assert len(words) == 2048, f"expected 2048 BIP-39 words, got {len(words)}"
+    overrides = load_overrides()
+    keyset = {nfc(w) for w in words}
+    for k in sorted(set(overrides) - keyset):
+        print(f"WARNING: override reading not in BIP-39 list: {k}", file=sys.stderr)
     jouyou = load_jouyou()
     kanji_idx, katakana_words = load_jmdict()
     jmnedict = load_jmnedict()
-    print(f"jouyou:{len(jouyou)} jmdict-readings:{len(kanji_idx)} "
-          f"katakana-words:{len(katakana_words)} jmnedict-readings:{len(jmnedict)}",
-          file=sys.stderr)
+    print(f"overrides:{len(overrides)} jouyou:{len(jouyou)} jmdict:{len(kanji_idx)} "
+          f"katakana:{len(katakana_words)} jmnedict:{len(jmnedict)}", file=sys.stderr)
 
     result, reasons = [], []
     for w in words:
         key = nfc(w)
+        if key in overrides:
+            result.append(overrides[key]); reasons.append("override")
+            continue
         cands = kanji_idx.get(key, {})
         elig = [(k, t) for k, t in cands.items() if eligible(k, jouyou)]
         tagged = [(k, t) for k, t in elig if t]
@@ -172,30 +197,29 @@ def main() -> int:
             names = sorted({k for k in jmnedict.get(key, set()) if eligible(k, jouyou)})
             if len(names) == 1:
                 best, kind = names[0], "kanji-name"
-
-        result.append(best if best is not None else w)
+        # All entries are emitted NFC; kana fallback fixes BIP-39's NFKD combining marks.
+        result.append(best if best is not None else nfc(w))
         reasons.append(kind)
 
-    # Collision resolution: any non-fallback value used by >1 index -> revert to kana.
+    # Collision resolution: any value used by >1 index -> revert later ones to NFC kana.
     counts = Counter(result)
     for i, v in enumerate(result):
-        if counts[v] > 1 and v != words[i]:
-            result[i] = words[i]
+        if counts[v] > 1 and v != nfc(words[i]):
+            result[i] = nfc(words[i])
             reasons[i] = "kana:collision"
 
     assert len(result) == 2048
     assert len(set(result)) == 2048, "post-conversion list is not unique"
-    assert all(nfc(result[i]) == result[i] for i in range(2048) if result[i] != words[i]), \
-        "a chosen kanji/katakana form is not NFC-stable"
+    assert all(nfc(r) == r for r in result), "an output entry is not NFC-normalized"
 
     OUT.write_text("\n".join(result) + "\n", encoding="utf-8")
     REPORT.write_text(
-        "\n".join(f"{i}\t{words[i]}\t{reasons[i]}\t{result[i]}" for i in range(2048)) + "\n",
+        "\n".join(f"{i}\t{nfc(words[i])}\t{reasons[i]}\t{result[i]}" for i in range(2048)) + "\n",
         encoding="utf-8")
-    kanji = sum(1 for r in reasons if r.startswith("kanji"))
-    kata = sum(1 for r in reasons if r == "katakana")
-    print(f"coverage: {kanji} kanji + {kata} katakana = {kanji + kata}/2048 "
-          f"non-hiragana ({100 * (kanji + kata) / 2048:.1f}%)", file=sys.stderr)
+    nonkana = sum(1 for r in reasons if r == "override" or r.startswith(("kanji", "katakana")))
+    applied = sum(1 for r in reasons if r == "override")
+    print(f"non-hiragana (kanji/katakana/override): {nonkana}/2048 "
+          f"({100 * nonkana / 2048:.1f}%); overrides applied: {applied}", file=sys.stderr)
     print(f"wrote {OUT} and {REPORT}", file=sys.stderr)
     return 0
 

@@ -89,9 +89,14 @@ chosen in this priority order:
 
 The frozen list lives at `crates/core/data/bip39-japanese-kanji.txt`.
 
-Normalization: the BIP-39 hiragana base is NFKD. List generation matches via NFC;
-kana-fallback entries keep BIP-39's NFKD bytes (so indices stay parallel to §5.2);
-kanji entries are NFC-stable atomic ideographs (stable under every normalization form).
+Normalization: the BIP-39 hiragana base is NFKD, but **every entry of this list is
+emitted in NFC** — including kana-fallback entries (this fixes BIP-39's decomposed
+combining dakuten, which otherwise breaks search/compare/dictionary processing). So
+this list is independent of §5.2's bytes; it is decoded only against its own table.
+
+A native-speaker override file (`scripts/kanji-overrides.tsv`) takes precedence over
+the automatic rules and may use non-常用 kanji or katakana where that is the natural
+spelling (e.g. `焚き火`, `時々`, `ニキビ`).
 
 > Status: EXPERIMENTAL. The standard form (§5.1) is recommended for long-term
 > storage. The kanji list is not yet frozen; a reproducibility test vector will be
