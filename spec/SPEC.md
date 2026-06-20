@@ -73,13 +73,21 @@ The kanji wordlist shares indices with the hiragana wordlist: each entry is eith
 the standard 常用漢字 spelling of the same word, or (when no safe, unambiguous kanji
 spelling exists) the original BIP-39 hiragana. The output is therefore 漢字混じり.
 
-An entry is written in kanji when its kanji characters are all 常用漢字 and the string
-is NFC-stable; kana (okurigana / suffixes such as 赤**ちゃん**) is allowed. Among
-multiple candidate spellings for a reading the most common is chosen by JMdict
-frequency markers (`感謝` over `官舎`); a single candidate is taken as-is (`愛国心`);
-a reading with several candidates but no frequency marker (obscure ateji such as
-`亜米利加`) stays kana. Otherwise the BIP-39 hiragana is kept. The frozen list lives at
-`crates/core/data/bip39-japanese-kanji.txt`.
+Each index uses the most natural standard written form of the same BIP-39 word,
+chosen in this priority order:
+
+1. **Kanji** — a JMdict kanji writing whose kanji characters are all 常用漢字 and which
+   is NFC-stable (kana such as okurigana is allowed, e.g. `赤ちゃん`). A single
+   candidate is taken as-is (`愛国心`); multiple candidates are disambiguated by JMdict
+   frequency markers, preferring the most common (`感謝` over `官舎`).
+2. **Katakana** — inherently foreign / loanwords (a JMdict entry whose readings are all
+   katakana): `あめりか`→`アメリカ`, `たいみんぐ`→`タイミング`.
+3. **Kanji (proper noun)** — place/person names via JMnedict with a single 常用漢字
+   writing: `かなざわし`→`金沢市`.
+4. **Hiragana** — otherwise the original BIP-39 hiragana is kept (native words written
+   in kana, obscure-ateji-only readings, and collision avoidance).
+
+The frozen list lives at `crates/core/data/bip39-japanese-kanji.txt`.
 
 Normalization: the BIP-39 hiragana base is NFKD. List generation matches via NFC;
 kana-fallback entries keep BIP-39's NFKD bytes (so indices stay parallel to §5.2);

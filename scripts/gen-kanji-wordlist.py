@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
-"""Generate the index-aligned kanji "skin" of the BIP-39 Japanese wordlist.
+"""Generate the index-aligned kanji/kana "skin" of the BIP-39 Japanese wordlist.
 
 Build-time AID ONLY. Its OUTPUT (crates/core/data/bip39-japanese-kanji.txt) is the
-frozen source of truth, committed to the repo. JMdict / KANJIDIC2 (EDRDG, CC-BY-SA)
-are used here purely as a lookup aid to determine standard orthography; they are
-NOT redistributed. The output is factual orthographic data (the standard kanji
-spelling of common words), index-aligned with bitcoin/bips bip-0039/japanese.txt.
+frozen source of truth, committed to the repo. JMdict / JMnedict / KANJIDIC2 (EDRDG,
+CC-BY-SA) are used here purely as lookup aids to determine standard orthography; they
+are NOT redistributed. The output is factual orthographic data, index-aligned with
+bitcoin/bips bip-0039/japanese.txt.
 
-Selection: for each BIP-39 reading, among JMdict kanji writings whose *kanji*
-characters are all 常用漢字 (kana such as okurigana/suffix is allowed) and which
-carry a JMdict frequency/priority marker (ke_pri), pick the most common writing.
-The chosen string is just an alphabet symbol for the base-2048 encoder, so a
-single canonical, common, well-rendered form per reading is all that is required.
-Note: re_restr restrictions are not modelled (acceptable for common words);
-the human audit + report is the backstop.
+Per BIP-39 reading, choose the most natural standard written form:
+  1. kanji      — JMdict kanji writing whose kanji chars are all 常用漢字 (kana such as
+                  okurigana allowed). Single candidate taken as-is (愛国心); multiple
+                  resolved by JMdict frequency markers (感謝 over 官舎).
+  2. katakana   — loanwords/foreign words (JMdict stores the reading in katakana):
+                  あめりか→アメリカ, たいみんぐ→タイミング.
+  3. kanji-name — proper nouns via JMnedict (place/person names): かなざわし→金沢市.
+  4. hiragana   — otherwise keep the original BIP-39 hiragana.
+The chosen string is just an alphabet symbol for the base-2048 encoder.
 """
 import gzip, io, sys, unicodedata, urllib.request
 import xml.etree.ElementTree as ET
@@ -24,6 +26,7 @@ BIP39 = Path("crates/core/data/bip39-japanese.txt")
 OUT = Path("crates/core/data/bip39-japanese-kanji.txt")
 REPORT = Path("scripts/kanji-wordlist-report.tsv")
 JMDICT_URL = "http://ftp.edrdg.org/pub/Nihongo/JMdict_e.gz"
+JMNEDICT_URL = "http://ftp.edrdg.org/pub/Nihongo/JMnedict.xml.gz"
 KANJIDIC_URL = "http://ftp.edrdg.org/pub/Nihongo/kanjidic2.xml.gz"
 
 PRIMARY = {"news1", "ichi1", "spec1", "gai1"}
@@ -33,9 +36,17 @@ def kata_to_hira(s: str) -> str:
     return "".join(chr(ord(c) - 0x60) if 0x30A1 <= ord(c) <= 0x30F6 else c for c in s)
 
 
+def hira_to_kata(s: str) -> str:
+    return "".join(chr(ord(c) + 0x60) if 0x3041 <= ord(c) <= 0x3096 else c for c in s)
+
+
+def nfc(s: str) -> str:
+    return unicodedata.normalize("NFC", s)
+
+
 def fetch_gz(url: str) -> bytes:
     print(f"fetching {url} ...", file=sys.stderr)
-    with urllib.request.urlopen(url, timeout=120) as r:
+    with urllib.request.urlopen(url, timeout=180) as r:
         return gzip.decompress(r.read())
 
 
@@ -53,10 +64,11 @@ def load_jouyou() -> set:
     return jouyou
 
 
-def load_reading_index() -> dict:
-    """JMdict: reading(kana, NFC) -> {kanji writing (keb): set(ke_pri tags)}."""
+def load_jmdict():
+    """-> (reading(NFC hira) -> {keb: set(ke_pri)},  katakana_words: set(reading))."""
     xml = fetch_gz(JMDICT_URL)
-    idx: dict = {}
+    kanji_idx: dict = {}
+    katakana_words: set = set()
     for _, el in ET.iterparse(io.BytesIO(xml), events=("end",)):
         if el.tag == "entry":
             kebs = []
@@ -65,12 +77,36 @@ def load_reading_index() -> dict:
                 if keb:
                     pris = {p.text for p in k.findall("ke_pri") if p.text}
                     kebs.append((keb, pris))
-            rebs = [unicodedata.normalize("NFC", kata_to_hira(r.text))
-                    for r in el.findall("r_ele/reb") if r.text]
-            for r in rebs:
-                bucket = idx.setdefault(r, {})
+            rebs = [r.findtext("reb") for r in el.findall("r_ele")]
+            rebs = [x for x in rebs if x]
+            # A word is "katakana" only when ALL of an entry's readings are katakana —
+            # i.e. an inherently katakana word (loanword/foreign: アメリカ, タイミング).
+            # Native words that merely list a katakana variant (うっかり/ウッカリ) keep a
+            # hiragana reading, so they are excluded.
+            entry_all_kata = bool(rebs) and all(
+                all(0x30A1 <= ord(c) <= 0x30FF or c == "ー" for c in x) for x in rebs
+            )
+            for reb in rebs:
+                rh = nfc(kata_to_hira(reb))
                 for keb, pris in kebs:
-                    bucket.setdefault(keb, set()).update(pris)
+                    kanji_idx.setdefault(rh, {}).setdefault(keb, set()).update(pris)
+                if entry_all_kata:
+                    katakana_words.add(rh)
+            el.clear()
+    return kanji_idx, katakana_words
+
+
+def load_jmnedict() -> dict:
+    """JMnedict (proper nouns): reading(NFC hira) -> set of kanji writings (keb)."""
+    xml = fetch_gz(JMNEDICT_URL)
+    idx: dict = {}
+    for _, el in ET.iterparse(io.BytesIO(xml), events=("end",)):
+        if el.tag == "entry":
+            kebs = [k.text for k in el.findall("k_ele/keb") if k.text]
+            for r in el.findall("r_ele/reb"):
+                if r.text:
+                    rh = nfc(kata_to_hira(r.text))
+                    idx.setdefault(rh, set()).update(kebs)
             el.clear()
     return idx
 
@@ -85,10 +121,6 @@ def is_kana(c: str) -> bool:
     return 0x3041 <= o <= 0x309F or 0x30A1 <= o <= 0x30FF or c == "ー"
 
 
-def nfc_stable(s: str) -> bool:
-    return unicodedata.normalize("NFC", s) == s
-
-
 def eligible(keb: str, jouyou: set) -> bool:
     """At least one kanji; every kanji char is 常用; other chars are kana; NFC-stable."""
     has_kanji = False
@@ -99,50 +131,52 @@ def eligible(keb: str, jouyou: set) -> bool:
             has_kanji = True
         elif not is_kana(c):
             return False
-    return has_kanji and nfc_stable(keb)
+    return has_kanji and nfc(keb) == keb
 
 
 def score(tags: set):
-    """Higher is more common: (has primary marker, -smallest nf rank)."""
     primary = 1 if (tags & PRIMARY) else 0
     nfs = [int(t[2:]) for t in tags if t.startswith("nf") and t[2:].isdigit()]
-    nf = min(nfs) if nfs else 999
-    return (primary, -nf)
+    return (primary, -(min(nfs) if nfs else 999))
 
 
 def main() -> int:
     words = [w for w in BIP39.read_text(encoding="utf-8").split("\n") if w]
     assert len(words) == 2048, f"expected 2048 BIP-39 words, got {len(words)}"
     jouyou = load_jouyou()
-    idx = load_reading_index()
-    print(f"jouyou kanji: {len(jouyou)}, reading keys: {len(idx)}", file=sys.stderr)
+    kanji_idx, katakana_words = load_jmdict()
+    jmnedict = load_jmnedict()
+    print(f"jouyou:{len(jouyou)} jmdict-readings:{len(kanji_idx)} "
+          f"katakana-words:{len(katakana_words)} jmnedict-readings:{len(jmnedict)}",
+          file=sys.stderr)
 
     result, reasons = [], []
     for w in words:
-        key = unicodedata.normalize("NFC", w)
-        cands = idx.get(key, {})
-        elig = [(keb, tags) for keb, tags in cands.items() if eligible(keb, jouyou)]
+        key = nfc(w)
+        cands = kanji_idx.get(key, {})
+        elig = [(k, t) for k, t in cands.items() if eligible(k, jouyou)]
         tagged = [(k, t) for k, t in elig if t]
         best, kind = None, "kana:no-eligible"
         if len(elig) == 1:
-            # Single standard kanji writing — take it even if JMdict tags it as uncommon
-            # (e.g. compounds like 愛国心 that lack frequency markers).
             best, kind = elig[0][0], "kanji"
         elif tagged:
-            # Multiple writings: pick the most common one with a frequency marker.
-            # This resolves homophones (感謝 over 官舎) by commonness.
             tagged.sort(key=lambda kt: (score(kt[1]), -len(kt[0]), kt[0]), reverse=True)
             best = tagged[0][0]
             alts = [k for k, _ in tagged[1:] if k != best][:3]
             kind = "kanji" + (f"(alt:{'/'.join(alts)})" if alts else "")
+        elif key in katakana_words:
+            best, kind = nfc(hira_to_kata(w)), "katakana"
         elif elig:
-            # Several eligible writings but none carry a frequency marker: likely obscure
-            # ateji (e.g. あめりか→亜米利加/亜墨利加). Keep kana — too ambiguous to choose.
             kind = "kana:ambiguous-untagged"
+        else:
+            names = sorted({k for k in jmnedict.get(key, set()) if eligible(k, jouyou)})
+            if len(names) == 1:
+                best, kind = names[0], "kanji-name"
+
         result.append(best if best is not None else w)
         reasons.append(kind)
 
-    # Collision resolution: a kanji form chosen for >1 position -> revert all to kana.
+    # Collision resolution: any non-fallback value used by >1 index -> revert to kana.
     counts = Counter(result)
     for i, v in enumerate(result):
         if counts[v] > 1 and v != words[i]:
@@ -151,16 +185,17 @@ def main() -> int:
 
     assert len(result) == 2048
     assert len(set(result)) == 2048, "post-conversion list is not unique"
-    # Chosen kanji forms must be NFC-stable. Kana fallbacks keep BIP-39's NFKD bytes.
-    assert all(nfc_stable(result[i]) for i in range(2048) if result[i] != words[i]), \
-        "a chosen kanji form is not NFC-stable"
+    assert all(nfc(result[i]) == result[i] for i in range(2048) if result[i] != words[i]), \
+        "a chosen kanji/katakana form is not NFC-stable"
 
     OUT.write_text("\n".join(result) + "\n", encoding="utf-8")
     REPORT.write_text(
         "\n".join(f"{i}\t{words[i]}\t{reasons[i]}\t{result[i]}" for i in range(2048)) + "\n",
         encoding="utf-8")
-    n = sum(1 for r in reasons if r.startswith("kanji"))
-    print(f"coverage: {n}/2048 kanji-ified ({100*n/2048:.1f}%)", file=sys.stderr)
+    kanji = sum(1 for r in reasons if r.startswith("kanji"))
+    kata = sum(1 for r in reasons if r == "katakana")
+    print(f"coverage: {kanji} kanji + {kata} katakana = {kanji + kata}/2048 "
+          f"non-hiragana ({100 * (kanji + kata) / 2048:.1f}%)", file=sys.stderr)
     print(f"wrote {OUT} and {REPORT}", file=sys.stderr)
     return 0
 
