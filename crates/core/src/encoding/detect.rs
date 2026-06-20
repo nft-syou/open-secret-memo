@@ -2,17 +2,20 @@ use crate::error::FormatError;
 use crate::payload::Payload;
 
 use super::standard::decode_standard;
-use super::words::decode_words;
+use super::words::{decode_words, decode_words_kanji};
 
 /// Decode any supported text representation. Routing:
 /// - starts with "OSM" + digit + "." => standard form
-/// - otherwise => Japanese wordlist form
+/// - otherwise => Japanese wordlist form (hiragana), falling back to the kanji
+///   "skin" form. The two word tables share indices, so a pure-kana-fallback
+///   string decodes identically under either; a string containing any kanji
+///   token fails the hiragana table and succeeds under the kanji table.
 pub fn detect_and_decode(s: &str) -> Result<Payload, FormatError> {
     let t = s.trim();
     if is_standard(t) {
         decode_standard(t)
     } else {
-        decode_words(t)
+        decode_words(t).or_else(|_| decode_words_kanji(t))
     }
 }
 
@@ -27,7 +30,7 @@ fn is_standard(s: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::encoding::{encode_standard, encode_words};
+    use crate::encoding::{encode_standard, encode_words, encode_words_kanji};
     use crate::params::Argon2Params;
 
     fn sample() -> Payload {
@@ -49,6 +52,12 @@ mod tests {
     #[test]
     fn routes_words() {
         let s = encode_words(&sample());
+        assert_eq!(detect_and_decode(&s).unwrap(), sample());
+    }
+
+    #[test]
+    fn routes_kanji() {
+        let s = encode_words_kanji(&sample());
         assert_eq!(detect_and_decode(&s).unwrap(), sample());
     }
 
