@@ -13,6 +13,15 @@ fn roundtrip_standard() {
 }
 
 #[wasm_bindgen_test]
+fn roundtrip_kanji() {
+    // Experimental kanji-mixed save format round-trips via detect_and_decode.
+    let ct = encrypt("秘密のメモ", "pw", 8192, 1, 1, "kanji").unwrap();
+    let outcome = decrypt(&ct, "pw");
+    assert!(outcome.ok);
+    assert_eq!(outcome.text, "秘密のメモ");
+}
+
+#[wasm_bindgen_test]
 fn wrong_passphrase_reports_auth_failed() {
     let ct = encrypt("hello", "right", 8192, 1, 1, "standard").unwrap();
     let outcome = decrypt(&ct, "wrong");
