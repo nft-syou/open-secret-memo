@@ -66,10 +66,49 @@ read L payload bytes. Trailing bits are zero padding.
 > Note: this uses the BIP-39 wordlist purely as an encoding alphabet. It is NOT a
 > wallet seed phrase and carries no BIP-39 checksum in v1.
 
+### 5.3 Kanji-mixed form (experimental)
+An index-aligned kanji "skin" of the §5.2 wordlist. The encoding is identical to
+§5.2; only the alphabet differs — `kanji_wordlist[index]` replaces `wordlist[index]`.
+The kanji wordlist shares indices with the hiragana wordlist: each entry is either
+the standard 常用漢字 spelling of the same word, or (when no safe, unambiguous kanji
+spelling exists) the original BIP-39 hiragana. The output is therefore 漢字混じり.
+
+Each index uses the most natural standard written form of the same BIP-39 word,
+chosen in this priority order:
+
+1. **Kanji** — a JMdict kanji writing whose kanji characters are all 常用漢字 and which
+   is NFC-stable (kana such as okurigana is allowed, e.g. `赤ちゃん`). A single
+   candidate is taken as-is (`愛国心`); multiple candidates are disambiguated by JMdict
+   frequency markers, preferring the most common (`感謝` over `官舎`).
+2. **Katakana** — inherently foreign / loanwords (a JMdict entry whose readings are all
+   katakana): `あめりか`→`アメリカ`, `たいみんぐ`→`タイミング`.
+3. **Kanji (proper noun)** — place/person names via JMnedict with a single 常用漢字
+   writing: `かなざわし`→`金沢市`.
+4. **Hiragana** — otherwise the original BIP-39 hiragana is kept (native words written
+   in kana, obscure-ateji-only readings, and collision avoidance).
+
+The frozen list lives at `crates/core/data/bip39-japanese-kanji.txt`.
+
+Normalization: the BIP-39 hiragana base is NFKD, but **every entry of this list is
+emitted in NFC** — including kana-fallback entries (this fixes BIP-39's decomposed
+combining dakuten, which otherwise breaks search/compare/dictionary processing). So
+this list is independent of §5.2's bytes; it is decoded only against its own table.
+
+A native-speaker override file (`scripts/kanji-overrides.tsv`) takes precedence over
+the automatic rules and may use non-常用 kanji or katakana where that is the natural
+spelling (e.g. `焚き火`, `時々`, `ニキビ`).
+
+> Status: EXPERIMENTAL. The standard form (§5.1) is recommended for long-term
+> storage. The kanji list is not yet frozen; a reproducibility test vector will be
+> added once it has been audited and frozen.
+
 ## 6. Detection
 
 - Input matching `^OSM[0-9]\.` is the standard form.
-- Otherwise it is parsed as the wordlist form.
+- Otherwise it is parsed as the hiragana wordlist form (§5.2), falling back to the
+  experimental kanji form (§5.3) when a token is absent from the hiragana wordlist.
+  Because the two wordlists share indices, an all-kana input decodes identically
+  under either table.
 
 ## 7. Test vectors
 

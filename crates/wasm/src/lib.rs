@@ -1,7 +1,7 @@
 use wasm_bindgen::prelude::*;
 
 use osm_core::{
-    decrypt as core_decrypt, detect_and_decode, encode_standard, encode_words, encrypt as core_encrypt,
+    decrypt as core_decrypt, detect_and_decode, encode_standard, encode_words, encode_words_kanji, encrypt as core_encrypt,
     Argon2Params, DecryptError, FormatError, OsRng,
 };
 
@@ -31,6 +31,7 @@ pub fn encrypt(
     match format {
         "standard" => Ok(encode_standard(&payload)),
         "words" => Ok(encode_words(&payload)),
+        "kanji" => Ok(encode_words_kanji(&payload)),
         other => Err(JsError::new(&format!("unknown format: {other}"))),
     }
 }

@@ -1,4 +1,4 @@
-export type SaveFormat = "standard" | "words";
+export type SaveFormat = "standard" | "words" | "kanji";
 
 export interface EncryptRequest {
   plaintext: string;

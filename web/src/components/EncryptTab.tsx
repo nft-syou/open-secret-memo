@@ -80,7 +80,13 @@ export default function EncryptTab() {
           >
             <option value="standard">標準形式</option>
             <option value="words">日本語単語列形式</option>
+            <option value="kanji">漢字混じり（実験）</option>
           </select>
+          {format === "kanji" && (
+            <p className="field-hint mt-1 text-amber-700">
+              実験的な形式です。長期保存には標準形式を推奨します。
+            </p>
+          )}
         </label>
 
         <label className="flex min-h-[4.75rem] items-center gap-3 rounded border border-stone-200 bg-stone-50 px-3 py-3 text-sm text-stone-700">

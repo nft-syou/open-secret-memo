@@ -43,4 +43,11 @@ describe("EncryptTab", () => {
     fireEvent.click(screen.getByRole("button", { name: "暗号化する" }));
     await waitFor(() => expect(screen.getByText(/暗号化に失敗しました/)).toBeInTheDocument());
   });
+
+  it("offers the experimental kanji save format with a warning", () => {
+    render(<EncryptTab />);
+    expect(screen.getByRole("option", { name: /漢字混じり/ })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("保存形式"), { target: { value: "kanji" } });
+    expect(screen.getByText(/実験的な形式です/)).toBeInTheDocument();
+  });
 });

@@ -10,19 +10,40 @@ pub static WORDLIST: [&str; 2048] = {
     include!(concat!(env!("CARGO_MANIFEST_DIR"), "/data/wordlist_array.in"))
 };
 
+/// Index-aligned kanji "skin" of [`WORDLIST`] (frozen, 2048 entries). Each index
+/// matches [`WORDLIST`]; entries that cannot be safely written in 常用漢字 stay in
+/// the original BIP-39 hiragana (so the form is "漢字混じり"). Experimental.
+pub static KANJI_WORDLIST: [&str; 2048] = {
+    // Generated from data/bip39-japanese-kanji.txt into data/wordlist_kanji_array.in via include!.
+    include!(concat!(env!("CARGO_MANIFEST_DIR"), "/data/wordlist_kanji_array.in"))
+};
+
 fn word_index() -> &'static HashMap<&'static str, u16> {
     static MAP: OnceLock<HashMap<&'static str, u16>> = OnceLock::new();
-    MAP.get_or_init(|| {
-        WORDLIST
-            .iter()
-            .enumerate()
-            .map(|(i, w)| (*w, i as u16))
-            .collect()
-    })
+    MAP.get_or_init(|| index_of(&WORDLIST))
 }
 
-/// Encode a payload as a Japanese BIP-39 word sequence (base-2048), words joined by `、` (U+3001).
+fn kanji_word_index() -> &'static HashMap<&'static str, u16> {
+    static MAP: OnceLock<HashMap<&'static str, u16>> = OnceLock::new();
+    MAP.get_or_init(|| index_of(&KANJI_WORDLIST))
+}
+
+fn index_of(wordlist: &'static [&'static str; 2048]) -> HashMap<&'static str, u16> {
+    wordlist.iter().enumerate().map(|(i, w)| (*w, i as u16)).collect()
+}
+
+/// Encode a payload as a Japanese BIP-39 word sequence (hiragana, base-2048),
+/// words joined by `、` (U+3001).
 pub fn encode_words(payload: &Payload) -> String {
+    encode_with(payload, &WORDLIST)
+}
+
+/// Same encoding using the kanji "skin" wordlist (experimental 漢字混じり form).
+pub fn encode_words_kanji(payload: &Payload) -> String {
+    encode_with(payload, &KANJI_WORDLIST)
+}
+
+fn encode_with(payload: &Payload, wordlist: &[&str; 2048]) -> String {
     let payload_bytes = payload.to_bytes();
     let mut bits: Vec<u8> = Vec::new();
     let len = payload_bytes.len() as u32;
@@ -36,16 +57,23 @@ pub fn encode_words(payload: &Payload) -> String {
         .chunks(11)
         .map(|chunk| {
             let idx = chunk.iter().fold(0u16, |acc, &b| (acc << 1) | b as u16);
-            WORDLIST[idx as usize]
+            wordlist[idx as usize]
         })
         .collect();
     words.join("\u{3001}") // "、"
 }
 
-/// Decode a Japanese BIP-39 word sequence back into a payload.
-/// Returns [`FormatError::InvalidWord`] for an unknown word, or [`FormatError::Malformed`] for empty/short input.
+/// Decode a Japanese BIP-39 word sequence (hiragana wordlist) back into a payload.
 pub fn decode_words(s: &str) -> Result<Payload, FormatError> {
-    let map = word_index();
+    decode_with(s, word_index())
+}
+
+/// Decode the kanji "skin" form.
+pub fn decode_words_kanji(s: &str) -> Result<Payload, FormatError> {
+    decode_with(s, kanji_word_index())
+}
+
+fn decode_with(s: &str, map: &HashMap<&'static str, u16>) -> Result<Payload, FormatError> {
     let mut bits: Vec<u8> = Vec::new();
     for token in s.split('\u{3001}') {
         let w = token.trim();
@@ -128,5 +156,23 @@ mod tests {
     fn empty_input_is_malformed() {
         assert_eq!(decode_words(""), Err(FormatError::Malformed));
         assert_eq!(decode_words("   "), Err(FormatError::Malformed));
+    }
+
+    #[test]
+    fn kanji_wordlist_is_2048_unique_and_index_aligned() {
+        assert_eq!(KANJI_WORDLIST.len(), WORDLIST.len());
+        let set: std::collections::HashSet<_> = KANJI_WORDLIST.iter().collect();
+        assert_eq!(set.len(), 2048);
+        // At least some entries were actually kanji-ified (differ from the hiragana list).
+        assert!(KANJI_WORDLIST.iter().zip(WORDLIST.iter()).any(|(k, h)| k != h));
+    }
+
+    #[test]
+    fn roundtrip_kanji_various_lengths() {
+        for ct_len in [16usize, 17, 18, 19, 32, 100] {
+            let p = payload(ct_len);
+            let words = encode_words_kanji(&p);
+            assert_eq!(decode_words_kanji(&words).unwrap(), p, "ct_len={ct_len}");
+        }
     }
 }
