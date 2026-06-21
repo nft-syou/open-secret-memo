@@ -197,6 +197,9 @@ def main() -> int:
             names = sorted({k for k in jmnedict.get(key, set()) if eligible(k, jouyou)})
             if len(names) == 1:
                 best, kind = names[0], "kanji-name"
+            else:
+                raw = sorted(cands.keys())[:4]  # any JMdict kanji writing (incl non-常用)
+                kind = "kana:no-eligible" + (f"({'/'.join(raw)})" if raw else "")
         # All entries are emitted NFC; kana fallback fixes BIP-39's NFKD combining marks.
         result.append(best if best is not None else nfc(w))
         reasons.append(kind)
