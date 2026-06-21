@@ -192,7 +192,7 @@ def main() -> int:
         elif key in katakana_words:
             best, kind = nfc(hira_to_kata(w)), "katakana"
         elif elig:
-            kind = "kana:ambiguous-untagged"
+            kind = "kana:ambiguous(" + "/".join(sorted({k for k, _ in elig})) + ")"
         else:
             names = sorted({k for k in jmnedict.get(key, set()) if eligible(k, jouyou)})
             if len(names) == 1:
