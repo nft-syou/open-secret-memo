@@ -56,4 +56,8 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy web/dist --project-name=open-secret-memo
+          # --branch=main forces a PRODUCTION deploy. The checkout above uses
+          # `ref: head_sha` (the CI-validated commit), which leaves git in a
+          # DETACHED HEAD; without an explicit branch, wrangler can't detect the
+          # production branch and would publish a preview deployment instead.
+          command: pages deploy web/dist --project-name=open-secret-memo --branch=main
